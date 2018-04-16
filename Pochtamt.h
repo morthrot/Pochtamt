@@ -37,48 +37,31 @@ along with Composer.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
+#ifndef POCHTAMT_H
+#define	POCHTAMT_H
+
 #include <QtCore>
 #include <QtNetwork>
 
-#ifdef Q_OS_UNIX
-#include <unistd.h>
-#include <errno.h>
-#include <pwd.h>
-#endif
-
-#include "Pochtamt.h"
-
-int main(int argc, char *argv[]) {
-    QCoreApplication app(argc, argv);
-#ifdef AM_USING_QT4
-    QTextCodec::setCodecForCStrings( QTextCodec::codecForName("UTF-8") );
-#endif
-    srand(QDateTime::currentDateTime().toMSecsSinceEpoch());
+class Pochtamt : public QObject {
+    Q_OBJECT
+private:
+    static QTextCodec * _codec;
     
-    quint16 port = (argc > 1 ? atoi(argv[1]) : 6888);
+    QUdpSocket * _channel;
+    unsigned int _uid;
     
-    Pochtamt pochtamt;
+    QMap<quint64,qint64> _hosts_map;
+public:
+    Pochtamt(QObject * parent = 0);
+    ~Pochtamt(void);
+public slots:
+    static void message(const QString & text);
+    bool bind(quint16 port = 6888);
     
-    bool listen_ok = pochtamt.bind(port);
-    if(listen_ok == false) { return EXIT_FAILURE; }
+    void recieveDatagram(void);    
+    void keepAlive(void);
+    };
 
-#ifdef Q_OS_UNIX
-    if(getuid() == 0) {
-        struct passwd * entry = getpwnam("_pochtamt");
-        if(entry == NULL) { perror("getpwnam"); return EXIT_FAILURE; } 
-        
-        if(chroot("/var/pochtamt") != 0) { perror("chroot"); return EXIT_FAILURE; }
-        if(chdir("/") != 0) { perror("chdir"); return EXIT_FAILURE; }
-        
-        if(setgid(entry->pw_gid) != 0) { perror("setgid"); return EXIT_FAILURE; }
-        if(setuid(entry->pw_uid) != 0) { perror("setuid"); return EXIT_FAILURE; }
-        }
-    
-#ifdef USE_PLEDGE
-    if(pledge("stdio inet",NULL) != 0) { perror("pledge"); return EXIT_FAILURE; }
-#endif
-#endif
+#endif	/* POCHTAMT_H */
 
-    return app.exec();
-    return EXIT_SUCCESS;    
-    }
