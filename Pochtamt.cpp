@@ -58,7 +58,7 @@ Pochtamt::Pochtamt(const QString & service,QObject * parent) : QObject(parent) {
     
     QTimer * timer = new QTimer(this);
     connect(timer,SIGNAL(timeout()),this,SLOT(keepAlive()));
-    timer->start(60 * 1000);
+    timer->start(15 * 60 * 1000);
     }
 
 Pochtamt::~Pochtamt(void) {
