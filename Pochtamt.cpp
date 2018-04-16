@@ -46,8 +46,10 @@ QTextCodec * Pochtamt::_codec = QTextCodec::codecForName(
     "UTF-8");
 #endif
 
-Pochtamt::Pochtamt(QObject * parent) : QObject(parent) {
+Pochtamt::Pochtamt(const QString & service,QObject * parent) : QObject(parent) {
     message("Инициализация экземпляра");
+    
+    _service = service;
     
     _channel = new QUdpSocket(this);
     connect(_channel,SIGNAL(readyRead()),this,SLOT(recieveDatagram()));
@@ -56,7 +58,7 @@ Pochtamt::Pochtamt(QObject * parent) : QObject(parent) {
     
     QTimer * timer = new QTimer(this);
     connect(timer,SIGNAL(timeout()),this,SLOT(keepAlive()));
-    timer->start(1000);
+    timer->start(60 * 1000);
     }
 
 Pochtamt::~Pochtamt(void) {
@@ -104,6 +106,11 @@ void Pochtamt::recieveDatagram(void) {
         QVariantMap map;
         ds >> map;
         
+        if(map.value("service") != _service) {
+            message("Сообщение не содержит или содержит неправильный service");
+            continue;
+            }
+        
         if(map.contains("uid") == false) {
             message("Сообщение не содержит uid");
             continue;
@@ -113,17 +120,16 @@ void Pochtamt::recieveDatagram(void) {
         if(uid == _uid) { message("Уже обработанный uid"); continue; }
         else { _uid = uid; }
 
-        _hosts_map[ (quint64)host.toIPv4Address() & (quint64)port << 32 ] = QDateTime::currentDateTime().toMSecsSinceEpoch();
+        _hosts_map[ (quint64)host.toIPv4Address() | (quint64)port << 32 ] = QDateTime::currentDateTime();
         
         QList<quint64> peer_list = _hosts_map.keys();
         for(int i=0; i<peer_list.count(); i++) {
             quint64 peer = peer_list.at(i);
             
-            QHostAddress peer_host( (quint32)(peer & 0xFFFFFFFF) );
+            QHostAddress peer_host( (quint32)(peer & 0xFFFFFFFFLL) );
             quint16 peer_port = (quint16)(peer >> 32);
 
             message( QString("Отправка сообщения %1:%2").arg(peer_host.toString()).arg(peer_port) );
-            
             _channel->writeDatagram(bytes,peer_host,peer_port);
             }        
         }
@@ -135,16 +141,15 @@ void Pochtamt::keepAlive(void) {
     
     QList<quint64> peer_list = _hosts_map.keys();
     for(int i=0; i<peer_list.count(); i++) {
-        quint64 peer = peer_list.at(i);
-        QDateTime dt = QDateTime::fromMSecsSinceEpoch( _hosts_map.value(peer) );
+        quint64 peer = peer_list.at(i);        
+        QDateTime dt = _hosts_map.value(peer);
+
+        if(dt.msecsTo(current_dt) < (8 * 60 * 60 * 1000)) { continue; }
         
-        if(dt.msecsTo(current_dt) < 10000) { continue; }
-        
-        QHostAddress peer_host( (quint32)(peer & 0xFFFFFFFF) );
+        QHostAddress peer_host( (quint32)(peer & 0xFFFFFFFFLL) );
         quint16 peer_port = (quint16)(peer >> 32);
 
-        message( QString("Удаление пира %1:%2").arg(peer_host.toString()).arg(peer_port) );
-        
+        message( QString("Удаление пира %1:%2").arg(peer_host.toString()).arg(peer_port) );        
         _hosts_map.remove(peer);
         }
     }

@@ -48,12 +48,13 @@ class Pochtamt : public QObject {
 private:
     static QTextCodec * _codec;
     
+    QString _service;
     QUdpSocket * _channel;
     unsigned int _uid;
     
-    QMap<quint64,qint64> _hosts_map;
+    QMap<quint64,QDateTime> _hosts_map;
 public:
-    Pochtamt(QObject * parent = 0);
+    Pochtamt(const QString & service,QObject * parent = 0);
     ~Pochtamt(void);
 public slots:
     static void message(const QString & text);

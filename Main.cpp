@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
     
     quint16 port = (argc > 1 ? atoi(argv[1]) : 6888);
     
-    Pochtamt pochtamt;
+    Pochtamt pochtamt("Banderol");
     
     bool listen_ok = pochtamt.bind(port);
     if(listen_ok == false) { return EXIT_FAILURE; }
