@@ -56,8 +56,9 @@ int main(int argc, char *argv[]) {
     srand(QDateTime::currentDateTime().toMSecsSinceEpoch());
     
     quint16 port = (argc > 1 ? atoi(argv[1]) : 6888);
+    QString service = (argc > 2 ? argv[2] : "Banderol");
     
-    Pochtamt pochtamt("Banderol");
+    Pochtamt pochtamt("service");
     
     bool listen_ok = pochtamt.bind(port);
     if(listen_ok == false) { return EXIT_FAILURE; }

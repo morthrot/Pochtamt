@@ -64,5 +64,5 @@ public slots:
     void keepAlive(void);
     };
 
-#endif	/* POCHTAMT_H */
+#endif /* POCHTAMT_H */
 
